@@ -1,0 +1,651 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>Dashboard Casa RGB</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    :root {
+      --bg: #050816;
+      --card: #0b1020;
+      --accent1: #00f5ff;
+      --accent2: #ff00ff;
+      --accent3: #00ff88;
+      --text-main: #f9fafb;
+      --text-muted: #9ca3af;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      min-height: 100vh;
+      background: radial-gradient(circle at top, #1a1a3a 0, #050816 45%, #02010a 100%);
+      color: var(--text-main);
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      overflow-x: hidden;
+    }
+
+    .bg-orbit {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: -1;
+      background:
+        radial-gradient(circle at 10% 20%, rgba(0, 245, 255, 0.22) 0, transparent 55%),
+        radial-gradient(circle at 90% 10%, rgba(255, 0, 255, 0.16) 0, transparent 55%),
+        radial-gradient(circle at 50% 90%, rgba(0, 255, 136, 0.16) 0, transparent 55%);
+      filter: blur(6px);
+      opacity: 0.85;
+      animation: bgPulse 12s ease-in-out infinite alternate;
+    }
+
+    @keyframes bgPulse {
+      0% { transform: scale(1); opacity: 0.7; }
+      100% { transform: scale(1.06); opacity: 1; }
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 32px 16px 40px;
+    }
+
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .title-wrap {
+      position: relative;
+      padding-left: 4px;
+    }
+
+    .title-main {
+      font-size: clamp(2.2rem, 3vw, 2.7rem);
+      letter-spacing: 0.05em;
+      font-weight: 800;
+      text-transform: uppercase;
+      background: linear-gradient(90deg, #00f5ff, #ff00ff, #00ff88);
+      background-size: 250% 100%;
+      -webkit-background-clip: text;
+      color: transparent;
+      animation: gradientMove 6s linear infinite;
+    }
+
+    @keyframes gradientMove {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+
+    .title-sub {
+      margin-top: 4px;
+      font-size: 0.9rem;
+      color: var(--text-muted);
+    }
+
+    .header-chip {
+      padding: 10px 14px;
+      border-radius: 999px;
+      background: linear-gradient(120deg, rgba(0, 245, 255, 0.16), rgba(255, 0, 255, 0.08));
+      border: 1px solid rgba(148, 163, 184, 0.4);
+      font-size: 0.82rem;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      white-space: nowrap;
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 999px;
+      background: #22c55e;
+      box-shadow: 0 0 12px rgba(34, 197, 94, 0.9);
+      animation: dotPulse 1.6s ease-in-out infinite;
+    }
+
+    @keyframes dotPulse {
+      0%, 100% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(1.5); opacity: 0.4; }
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
+      gap: 20px;
+    }
+
+    @media (max-width: 900px) {
+      .grid {
+        grid-template-columns: minmax(0, 1fr);
+      }
+    }
+
+    .card {
+      position: relative;
+      background: radial-gradient(circle at top left, rgba(0, 245, 255, 0.08), rgba(15, 23, 42, 0.98));
+      border-radius: 18px;
+      padding: 16px 18px 18px;
+      border: 1px solid rgba(148, 163, 184, 0.4);
+      box-shadow:
+        0 0 0 1px rgba(15, 23, 42, 0.9),
+        0 18px 45px rgba(0, 0, 0, 0.85);
+      overflow: hidden;
+    }
+
+    .card::before {
+      content: "";
+      position: absolute;
+      inset: -2px;
+      border-radius: inherit;
+      background: conic-gradient(from 130deg, rgba(0, 245, 255, 0.6), rgba(255, 0, 255, 0.7), rgba(0, 255, 136, 0.6), rgba(0, 245, 255, 0.6));
+      opacity: 0;
+      z-index: -1;
+      transition: opacity 0.3s ease;
+      filter: blur(3px);
+    }
+
+    .card:hover::before {
+      opacity: 0.7;
+    }
+
+    .card-title {
+      font-size: 0.9rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.16em;
+      margin-bottom: 12px;
+      color: var(--text-muted);
+    }
+
+    .stats-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-top: 4px;
+    }
+
+    .stat-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.95rem;
+      padding: 6px 0;
+      border-bottom: 1px solid rgba(31, 41, 55, 0.8);
+    }
+
+    .stat-row:last-child {
+      border-bottom: none;
+    }
+
+    .stat-label {
+      color: var(--text-muted);
+    }
+
+    .stat-value {
+      font-weight: 600;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 3px 9px;
+      border-radius: 999px;
+      font-size: 0.75rem;
+      background: rgba(15, 23, 42, 0.9);
+      border: 1px solid rgba(148, 163, 184, 0.4);
+      color: var(--text-muted);
+    }
+
+    .pill.alert {
+      border-color: rgba(248, 113, 113, 0.9);
+      color: #fecaca;
+    }
+
+    .pill.ok {
+      border-color: rgba(34, 197, 94, 0.8);
+      color: #bbf7d0;
+    }
+
+    .big-value {
+      font-size: 1.7rem;
+      font-weight: 700;
+    }
+
+    .value-unit {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      margin-left: 4px;
+    }
+
+    .porton-state {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 12px;
+      border-radius: 999px;
+      border: 1px solid rgba(148, 163, 184, 0.6);
+      font-size: 0.8rem;
+      margin-top: 6px;
+      background: rgba(15, 23, 42, 0.9);
+    }
+
+    .porton-dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 999px;
+    }
+
+    .porton-dot.abierto {
+      background: #22c55e;
+      box-shadow: 0 0 10px rgba(34, 197, 94, 0.85);
+    }
+
+    .porton-dot.cerrado {
+      background: #ef4444;
+      box-shadow: 0 0 10px rgba(239, 68, 68, 0.9);
+    }
+
+    .btn-row {
+      display: flex;
+      gap: 12px;
+      margin-top: 14px;
+    }
+
+    .btn {
+      flex: 1;
+      border-radius: 999px;
+      padding: 11px 0;
+      border: none;
+      font-size: 0.95rem;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      cursor: pointer;
+      position: relative;
+      overflow: hidden;
+      color: #0f172a;
+    }
+
+    .btn-open {
+      background: linear-gradient(120deg, #22c55e, #4ade80);
+      box-shadow: 0 10px 25px rgba(34, 197, 94, 0.45);
+    }
+
+    .btn-close {
+      background: linear-gradient(120deg, #f97316, #ef4444);
+      box-shadow: 0 10px 25px rgba(239, 68, 68, 0.45);
+    }
+
+    .btn::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(120deg, rgba(255, 255, 255, 0.4), transparent 60%);
+      transform: translateX(-120%);
+      transition: transform 0.35s ease;
+    }
+
+    .btn:hover::before {
+      transform: translateX(0);
+    }
+
+    .btn:active {
+      transform: translateY(1px) scale(0.99);
+      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.8);
+    }
+
+    .badge-corner {
+      position: absolute;
+      top: 14px;
+      right: 16px;
+      font-size: 0.72rem;
+      padding: 4px 9px;
+      border-radius: 999px;
+      background: rgba(15, 23, 42, 0.9);
+      border: 1px solid rgba(148, 163, 184, 0.6);
+      color: var(--text-muted);
+    }
+
+    .toast {
+      position: fixed;
+      right: 18px;
+      bottom: 18px;
+      padding: 10px 14px;
+      border-radius: 999px;
+      font-size: 0.85rem;
+      background: rgba(15, 23, 42, 0.96);
+      border: 1px solid rgba(148, 163, 184, 0.7);
+      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.85);
+      display: none;
+      opacity: 0;
+      transform: translateY(10px);
+      transition: opacity 0.25s ease, transform 0.25s ease;
+      z-index: 20;
+    }
+
+    .toast.show {
+      display: block;
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .toast span {
+      margin-left: 6px;
+    }
+
+    .chip-row {
+      display: flex;
+      gap: 8px;
+      margin-top: 10px;
+      flex-wrap: wrap;
+    }
+
+    .chip {
+      padding: 4px 8px;
+      border-radius: 999px;
+      border: 1px solid rgba(148, 163, 184, 0.4);
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      background: rgba(15, 23, 42, 0.9);
+    }
+
+    .link-historial {
+      margin-top: 12px;
+      display: inline-block;
+      font-size: 0.8rem;
+      color: var(--accent1);
+      text-decoration: none;
+    }
+  </style>
+</head>
+<body>
+<div class="bg-orbit"></div>
+
+<div class="container">
+  <header class="header">
+    <div class="title-wrap">
+      <h1 class="title-main">Smart Home Gate</h1>
+      <p class="title-sub">Monitor en tiempo real · Arduino R4 WiFi + MQTT</p>
+      <a class="link-historial" href="historial.html">📜 Ver historial de eventos</a>
+    </div>
+    <div class="header-chip">
+      <div class="status-dot"></div>
+      <span>Online · broker.hivemq.com</span>
+    </div>
+  </header>
+
+  <div class="grid">
+    <!-- PANEL IZQUIERDO -->
+    <section class="card">
+      <div class="card-title">Estado en tiempo real</div>
+
+      <div class="stats-list">
+        <div class="stat-row">
+          <span class="stat-label">Persona en puerta (PIR)</span>
+          <span class="stat-value" id="pirValue">---</span>
+        </div>
+
+        <div class="stat-row">
+          <span class="stat-label">Distancia ultrasonido</span>
+          <span class="stat-value">
+            <span class="big-value" id="distValue">--</span>
+            <span class="value-unit">cm</span>
+          </span>
+        </div>
+
+        <div class="stat-row">
+          <span class="stat-label">Nivel luminosidad (LDR)</span>
+          <span class="stat-value" id="ldrValue">---</span>
+        </div>
+
+        <div class="stat-row">
+          <span class="stat-label">Alerta</span>
+          <span id="alertaValue" class="pill">sin alerta</span>
+        </div>
+      </div>
+
+      <div class="chip-row">
+        <div class="chip">Servo D3</div>
+        <div class="chip">PIR D2</div>
+        <div class="chip">ULTRA D6/D7</div>
+        <div class="chip">RGB 10·11·12</div>
+      </div>
+    </section>
+
+    <!-- PANEL DERECHO: PORTÓN -->
+    <section class="card">
+      <div class="badge-corner" id="portonBadge">
+        Portón: <span id="portonEstadoMini">---</span>
+      </div>
+
+      <div class="card-title">Control del portón</div>
+
+      <div style="margin-bottom: 4px;">
+        <div class="porton-state">
+          <div class="porton-dot" id="portonDot"></div>
+          <span id="portonLabel">Estado desconocido</span>
+        </div>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn btn-open" onclick="enviarCmd('open')">Abrir portón</button>
+        <button class="btn btn-close" onclick="enviarCmd('close')">Cerrar portón</button>
+      </div>
+
+      <div style="margin-top:18px; font-size:0.8rem; color:var(--text-muted);">
+        Historial reciente (distancia / luz)
+      </div>
+
+      <div style="margin-top:8px; height: 180px;">
+        <canvas id="chart"></canvas>
+      </div>
+    </section>
+
+    <!-- PANEL LUCES -->
+    <section class="card">
+      <div class="badge-corner">
+        Luces RGB
+      </div>
+
+      <div class="card-title">Control de luces</div>
+
+      <div style="margin-bottom: 4px;">
+        <div class="porton-state">
+          <div class="porton-dot" id="lucesDot"></div>
+          <span id="lucesLabel">Sin estado</span>
+        </div>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn btn-open" onclick="luces('ON')">Encender luces</button>
+        <button class="btn btn-close" onclick="luces('OFF')">Apagar luces</button>
+      </div>
+    </section>
+  </div>
+</div>
+
+<div class="toast" id="toast">
+  <span id="toastText"></span>
+</div>
+
+<script>
+  const pirEl = document.getElementById("pirValue");
+  const distEl = document.getElementById("distValue");
+  const ldrEl = document.getElementById("ldrValue");
+  const alertaEl = document.getElementById("alertaValue");
+  const portonDot = document.getElementById("portonDot");
+  const portonLabel = document.getElementById("portonLabel");
+  const portonEstadoMini = document.getElementById("portonEstadoMini");
+  const toast = document.getElementById("toast");
+  const toastText = document.getElementById("toastText");
+  const lucesDot = document.getElementById("lucesDot");
+  const lucesLabel = document.getElementById("lucesLabel");
+
+  let labels = [];
+  let distData = [];
+  let ldrData = [];
+
+  const ctx = document.getElementById("chart").getContext("2d");
+  const chart = new Chart(ctx, {
+    type: "line",
+    data: {
+      labels,
+      datasets: [
+        {
+          label: "Distancia (cm)",
+          data: distData,
+          borderColor: "#00f5ff",
+          borderWidth: 2,
+          tension: 0.25,
+          pointRadius: 0
+        },
+        {
+          label: "Luz (LDR)",
+          data: ldrData,
+          borderColor: "#ff00ff",
+          borderWidth: 2,
+          tension: 0.25,
+          pointRadius: 0
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          labels: {
+            color: "#e5e7eb",
+            font: { size: 11 }
+          }
+        }
+      },
+      scales: {
+        x: {
+          ticks: {
+            display: false
+          },
+          grid: { display: false }
+        },
+        y: {
+          ticks: { color: "#9ca3af", font: { size: 10 } },
+          grid: { color: "rgba(148,163,184,0.2)" }
+        }
+      }
+    }
+  });
+
+  function showToast(text) {
+    toastText.textContent = text;
+    toast.classList.add("show");
+    setTimeout(() => toast.classList.remove("show"), 1700);
+  }
+
+  async function actualizar() {
+    try {
+      const res = await fetch("/estado");
+      const data = await res.json();
+
+      pirEl.textContent = data.pir === "1" ? "1 (persona)" : "0 (libre)";
+
+      const dist = Number(data.distancia || 0);
+      distEl.textContent = dist > 0 ? dist : "--";
+
+      const ldr = Number(data.ldr || 0);
+      ldrEl.textContent = ldr;
+
+      if (data.alerta && data.alerta !== "") {
+        alertaEl.textContent = data.alerta;
+        alertaEl.className = "pill alert";
+      } else {
+        alertaEl.textContent = "sin alerta";
+        alertaEl.className = "pill ok";
+      }
+
+      const estadoPorton = (data.porton || "").toLowerCase();
+      portonEstadoMini.textContent = estadoPorton || "desconocido";
+
+      if (estadoPorton === "abierto") {
+        portonDot.className = "porton-dot abierto";
+        portonLabel.textContent = "Portón abierto";
+      } else if (estadoPorton === "cerrado") {
+        portonDot.className = "porton-dot cerrado";
+        portonLabel.textContent = "Portón cerrado";
+      } else {
+        portonDot.className = "porton-dot";
+        portonLabel.textContent = "Sin estado";
+      }
+
+      // luces
+      const estadoLuces = (data.luces || "").toUpperCase();
+      if (estadoLuces === "ON") {
+        lucesDot.className = "porton-dot abierto";
+        lucesLabel.textContent = "Luces encendidas";
+      } else if (estadoLuces === "OFF") {
+        lucesDot.className = "porton-dot cerrado";
+        lucesLabel.textContent = "Luces apagadas";
+      } else {
+        lucesDot.className = "porton-dot";
+        lucesLabel.textContent = "Sin estado";
+      }
+
+      const maxPoints = 40;
+      labels.push("");
+      distData.push(dist);
+      ldrData.push(ldr);
+
+      if (labels.length > maxPoints) {
+        labels.shift();
+        distData.shift();
+        ldrData.shift();
+      }
+
+      chart.update("none");
+    } catch (e) {
+      // opcional log
+    }
+  }
+
+  async function enviarCmd(cmd) {
+    try {
+      await fetch("/porton", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ cmd })
+      });
+      showToast(cmd === "open" ? "Comando: abrir portón" : "Comando: cerrar portón");
+    } catch (e) {
+      showToast("Error enviando comando");
+    }
+  }
+
+    async function luces(cmd) {
+    try {
+        await fetch("/luces", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ cmd })
+        });
+        showToast(cmd === "ON" ? "Luces encendidas" : "Luces apagadas");
+    } catch (e) {
+        showToast("Error enviando comando de luces");
+    }
+    }
+
+
+  setInterval(actualizar, 600);
+  actualizar();
+</script>
+</body>
+</html>
